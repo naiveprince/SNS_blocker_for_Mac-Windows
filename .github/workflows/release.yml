@@ -1,0 +1,98 @@
+name: Build Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-macos:
+    name: Build macOS app
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test
+        run: |
+          cd macOS
+          python3 app.py --self-test
+
+      - name: Build app
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pyinstaller
+          python3 -m PyInstaller --noconfirm --clean --windowed --name "SNS Access Blocker" macOS/app.py
+
+      - name: Create zip
+        run: |
+          mkdir -p release-assets
+          ditto -c -k --keepParent "dist/SNS Access Blocker.app" release-assets/SNS-Access-Blocker-macOS.zip
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-release
+          path: release-assets/SNS-Access-Blocker-macOS.zip
+
+  build-windows:
+    name: Build Windows exe
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Test
+        shell: pwsh
+        run: |
+          cd Windows
+          python app.py --self-test
+
+      - name: Build exe
+        shell: pwsh
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install pyinstaller
+          python -m PyInstaller --noconfirm --clean --windowed --onefile --name "SNS Access Blocker" Windows/app.py
+          New-Item -ItemType Directory -Force -Path release-assets | Out-Null
+          Copy-Item "dist/SNS Access Blocker.exe" "release-assets/SNS-Access-Blocker-Windows.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-release
+          path: release-assets/SNS-Access-Blocker-Windows.exe
+
+  publish-release:
+    name: Publish GitHub Release
+    runs-on: ubuntu-latest
+    needs:
+      - build-macos
+      - build-windows
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: release-assets
+          merge-multiple: true
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "${GITHUB_REF_NAME}" release-assets/* \
+            --title "SNS Access Blocker ${GITHUB_REF_NAME}" \
+            --notes "Mac版とWindows版の配布ファイルです。READMEの手順に従ってダウンロードしてください。"

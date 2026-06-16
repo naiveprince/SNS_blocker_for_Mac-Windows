@@ -1,0 +1,6 @@
+#!/bin/zsh
+set -e
+
+ROOT="$(cd "$(dirname "$0")" && pwd)"
+export PATH="$HOME/.pyenv/shims:/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$PATH"
+exec python3 "$ROOT/app.py"
