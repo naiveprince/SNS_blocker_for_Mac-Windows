@@ -879,7 +879,7 @@ def self_test() -> int:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(macos_info)
         if os.name != "nt":
-        subprocess.run(["/bin/bash", "-n", str(script_path)], check=True)
+            subprocess.run(["/bin/bash", "-n", str(script_path)], check=True)
     finally:
         try:
             script_path.unlink()
