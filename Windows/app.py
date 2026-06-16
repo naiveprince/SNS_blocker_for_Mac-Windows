@@ -878,19 +878,8 @@ def self_test() -> int:
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as handle:
             handle.write(macos_info)
-        subprocess.run(
-            [
-                "powershell",
-                "-NoProfile",
-                "-ExecutionPolicy",
-                "Bypass",
-                "-Command",
-                "$script = [Console]::In.ReadToEnd(); [scriptblock]::Create($script) | Out-Null",
-            ],
-            input=script_path.read_text(encoding="utf-8"),
-            text=True,
-            check=True,
-        )
+        if os.name != "nt":
+        subprocess.run(["/bin/bash", "-n", str(script_path)], check=True)
     finally:
         try:
             script_path.unlink()
